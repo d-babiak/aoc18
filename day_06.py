@@ -1,4 +1,5 @@
 from collections import defaultdict, deque, Counter
+from itertools import chain
 from pprint import pprint
 from typing import List, Tuple, Set, Dict, Iterable
 
@@ -32,6 +33,9 @@ def parse_points(xys: List[Point]) -> Dict[str, Point]:
         f'P_{i}': coords
         for i, coords in enumerate(xys)
     }
+
+
+
 
 
 def infinite_points(points: Dict[str, Point]) -> Set[Point]:
@@ -74,6 +78,8 @@ def num_none(M: Matrix) -> int:
 
 TIED = '.'
 
+
+# lol
 def bfs_flood(PS: Dict[str, Point], M: Matrix) -> Tuple[Matrix, Dict]:
     frontier_by_id = {
         p: [xy]
@@ -100,17 +106,82 @@ def bfs_flood(PS: Dict[str, Point], M: Matrix) -> Tuple[Matrix, Dict]:
 
     return M
 
-PS = dict(
-    A = (1, 1),
-    B = (1, 6),
-    C = (8, 3),
-    D = (3, 4),
-    E = (5, 5),
-    F = (8, 9)
-)
+# PS = dict(
+#     A = (1, 1),
+#     B = (1, 6),
+#     C = (8, 3),
+#     D = (3, 4),
+#     E = (5, 5),
+#     F = (8, 9)
+# )
 
-marked_M = bfs_flood(PS, marked_matrix(PS))
 
-finite_points: Set[str] = set(PS.keys()) - infinite_points(PS)
+def parse_grid():
+    with open('./input/d6.txt') as fp:
+        points = [
+            tuple(map(int, line.rstrip().split(',')))
+            for line in fp
+        ]
+    return dict(enumerate(points))
 
-pprint(marked_M)
+PS = parse_grid()
+
+marked_M = marked_matrix(PS)
+
+def distance(p1, p2) -> int:
+    dx = p1[0] - p2[0]
+    dy = p1[1] - p2[1]
+    return abs(dx) + abs(dy)
+
+def closest_point(point: Tuple[int,int], points: List[Tuple[str, Tuple[int, int]]]) -> str:
+    min_D = min(
+        distance(point, p[1]) for p in points
+    )
+    closest_points = [p for p in points if distance(point, p[1]) == min_D]
+    if len(closest_points) > 1:
+        print('TIED!', closest_points)
+        return '.'
+    else:
+        print(f'closest point to {point} is  {closest_points[0]}')
+        return closest_points[0][0]
+
+for x in marked_M:
+    print(' '.join('-' if cell is None else str(cell) for cell in x))
+
+points = list(PS.items())
+print(closest_point((4,6), points))
+
+for row in range(len(marked_M)):
+    for col in range(len(marked_M[0])):
+        if marked_M[row][col] is None:
+            marked_M[row][col] = closest_point((col,row), points)
+
+for x in marked_M:
+    print(' '.join('-' if cell is None else str(cell) for cell in x))
+
+C = Counter(chain(*marked_M))
+S = set(marked_M[0])  | \
+    set(marked_M[-1]) | \
+    set(row[0] for row in marked_M) | \
+    set(row[-1] for row in marked_M)
+
+print(S)
+print(C)
+for x in S:
+    C.pop(x)
+print(C)
+# finite_points: Set[str] = set(PS.keys()) - infinite_points(PS)
+
+#
+# pprint(marked_M)
+
+def part_two(points: List[Tuple[int,int]]) -> int:
+    xs, ys = zip(*points)
+    dim = max(max(xs), max(ys)) + 1
+    return sum(
+        1
+        for x in range(dim)
+        for y in range(dim)
+        if sum(distance((x,y), p) for p in points) < 10000
+    )
+print(part_two(list(PS.values())))
